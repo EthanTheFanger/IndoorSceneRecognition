@@ -1,7 +1,7 @@
 import os
 import shutil
 
-# Root directory containing all the room folders
+# root directory containing all the room folders
 BASE_DIR = "Images"
 
 # Category mapping
