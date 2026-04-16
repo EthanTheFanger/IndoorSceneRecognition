@@ -1,8 +1,8 @@
 library(mvtnorm)
 
 # Load features from our CNN model in Python
-train_data <- read.csv('/Users/colinchu/Documents/ds4420/train_features.csv')
-test_data <- read.csv('/Users/colinchu/Documents/ds4420/test_features.csv')
+train_data <- read.csv("C:/Users/colin/OneDrive/Documents/ds4420/train_features_normalized.csv")
+test_data <- read.csv("C:/Users/colin/OneDrive/Documents/ds4420/test_features_normalized.csv")
 
 # Split data to training and test
 X_train <- as.matrix(cbind(1, train_data[,-ncol(train_data)]))
@@ -94,7 +94,7 @@ for (class_id in 0:(n_classes - 1)) {
 # thinning - keep every 10th sample (same as course file)
 for (class_id in 1:n_classes) {
   all_w_samples[[class_id]] <- all_w_samples[[class_id]][
-    seq(1, nrow(all_w_samples[[class_id]]), by = 10), ]
+    seq(1, nrow(all_w_samples[[class_id]]), by = 50), ]
 }
 
 for (class_id in 1:n_classes) {
