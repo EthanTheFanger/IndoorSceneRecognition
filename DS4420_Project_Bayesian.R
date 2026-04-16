@@ -1,3 +1,5 @@
+library(mvtnorm)
+
 # Load features from our CNN model in Python
 train_data <- read.csv('/Users/colinchu/Documents/ds4420/train_features.csv')
 test_data <- read.csv('/Users/colinchu/Documents/ds4420/test_features.csv')
@@ -8,44 +10,41 @@ X_test <- as.matrix(cbind(1, test_data[,-ncol(test_data)]))
 y_train <- train_data$label
 y_test <- test_data$label
 
-# Normal model with unknown variance
 n_classes <- 5
 n_features <- ncol(X_train)
-no_samples <- 2000
-
-prior_w <- matrix(0, nrow = n_features, ncol = 1)
-prior_Sigma <- diag(n_features) * 10
-
-#since we have 5 superclasses, we need an array for all w samples
-all_w_samples <- list()
+no_samples <- 10000
 
 # Sigmoid function
 sigmoid <- function(w, X) {
   1 / (1 + exp(-X %*% w))
 }
 
-# Log prior
-log_prior <- function(w, prior_Sigma) {
-  -0.5 * t(w) %*% solve(prior_Sigma) %*% w
-}
+# Define prior, likelihood and joint
+mu0 = array(0, n_features)
+Sigma0 <- diag(n_features) * 1
 
-# Log likelihood
-log_likelihood <- function(w, X, y) {
+
+# Without log likelihood/priors, we run into underflowing issues (probabilities multiply to 0)
+# So we use a log likelihood/prior, and add them instead of multiplying
+likelihood <- function(w, X, y) {
   p <- sigmoid(w, X)
-  sum(y * log(p + 1e-10) + (1 - y) * log(1 - p + 1e-10)) # add 1e-10 to avoid log(0)
+  sum(y * log(p + 1e-10) + (1 - y) * log(1 - p + 1e-10)) #add 1e-10 to prevent log(0)
 }
 
-# Log joint (prior + likelihood)
-log_joint <- function(w, X, y, prior_Sigma) {
-  log_likelihood(w, X, y) + log_prior(w, prior_Sigma)
+prior <- function(w) { 
+  log(dmvnorm(as.vector(w), mean = mu0, sigma = Sigma0))
 }
 
-prior_w <- matrix(0, nrow = n_features, ncol = 1)
-prior_Sigma <- diag(n_features) * 10
+p <- function(w, X, y) {
+  likelihood(w, X, y) + prior(w)
+}
+
+#since we have 5 superclasses, we need an array for all w samples
+all_w_samples <- list()
 
 # Metropolis sampler
-metropolis_bayesian_logistic <- function(X, y_binary, n_features,
-                                n = 2000, sigma = 1, burn = 0.25) {
+metropolis_bayesian_logistic <- function(X, y, n_features,
+                                n = no_samples, sigma = 0.08, burn = 0.25) {
   
   total_samples <- as.integer(n / (1 - burn))
   m <- as.integer(total_samples * burn)  # burn-in amount
@@ -58,11 +57,10 @@ metropolis_bayesian_logistic <- function(X, y_binary, n_features,
   for (i in 1:total_samples) {
     w_proposal <- w_tilde + matrix(rnorm(n_features, 0, sigma), ncol = 1)
     
-    # Acceptance ratio (log scale for numerical stability)
-    log_alpha <- log_joint(w_proposal, X, y_binary, prior_Sigma) -
-      log_joint(w_tilde, X, y_binary, prior_Sigma)
+    # Acceptance ratio (subtract logs since we're using a log joint)
+    alpha <- p(w_proposal, X, y) - p(w_tilde, X, y)
     
-    if (log(runif(1)) < log_alpha) {
+    if (log(runif(1)) < alpha) {
       w_tilde <- w_proposal
       accepted <- accepted + 1
     }
@@ -93,6 +91,12 @@ for (class_id in 0:(n_classes - 1)) {
   all_w_samples[[class_id + 1]] <- metropolis_bayesian_logistic(X_train, y, n_features)
 }
 
+# thinning - keep every 10th sample (same as course file)
+for (class_id in 1:n_classes) {
+  all_w_samples[[class_id]] <- all_w_samples[[class_id]][
+    seq(1, nrow(all_w_samples[[class_id]]), by = 10), ]
+}
+
 for (class_id in 1:n_classes) {
   plot(all_w_samples[[class_id]][, 1], type = "l",
        main = sprintf("Trace - %s", class_names[class_id]),
@@ -114,7 +118,6 @@ for (class_id in 1:n_classes) {
   probs[, class_id] <- sigmoid(w, X_test)
 }
 
-# Per class accuracies
 y_pred <- apply(probs, 1, which.max) - 1
 accuracy <- mean(y_pred == y_test)
 cat(sprintf("Test accuracy: %.4f\n", accuracy))
@@ -124,3 +127,25 @@ for (class_id in 0:(n_classes - 1)) {
   class_acc <- mean(y_pred[y_test == class_id] == class_id)
   cat(sprintf("%s accuracy: %.4f\n", class_names[class_id + 1], class_acc))
 }
+
+# Posterior Histogram
+for (class_id in 1:n_classes) {
+  sample_probs <- c()
+  for (i in 1:nrow(all_w_samples[[class_id]])) {
+    w <- matrix(all_w_samples[[class_id]][i, ], ncol = 1)
+    sample_probs <- c(sample_probs, sigmoid(w, matrix(X_test[1, ], nrow = 1)))
+  }
+  hist(sample_probs,
+       main = sprintf("Post Pred - Image 1 as %s", class_names[class_id]),
+       xlab = "P(class | image)")
+  abline(v = mean(sample_probs), col = 'red', lwd = 2)
+}
+
+par(mfrow = c(2, 3))
+for (class_id in 1:n_classes) {
+  hist(all_w_samples[[class_id]][, 1],
+       main = sprintf("Posterior - %s", class_names[class_id]),
+       xlab = "w")
+  abline(v = mean(all_w_samples[[class_id]][, 1]), col = 'red', lwd = 2)
+}
+par(mfrow = c(1, 1))
