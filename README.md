@@ -15,3 +15,5 @@ Bayesian Logisitc Regression - R and manual
 | DS4420_Project_Bayesian.R | the R file that reads in the CSV files created by the CNN features extractor and then performs sampling to get the posterior, which is the likelihood of the labels given the features from the CNN|
 | DS4420_Project_CNN.ipynb | two CNN models, the first one being identical to the CNN feature extractor, but the softmax layer is kept. The second model is another CNN that is trained specifically on the room types of the store category. It takes in images that are indoor scenes from stores and classify them into room types of stores|
 | initial_POC_cnn_training.ipynb | the inital proof of concept file for phase 1 | 
+
+[![Poster Preview](DS4420_poster_preview.png)](DS4420_project_poster.pdf)
