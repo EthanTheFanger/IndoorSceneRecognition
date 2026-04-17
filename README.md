@@ -6,8 +6,9 @@ There will be two models that will be built in this project:
 CNN - using keras and tensorflow  
 Bayesian Logisitc Regression - R and manual  
 
-## jupyter notebook files are run on google collab for more computation.
+## jupyter notebook files are run on google collab for more computation. The google drive file structure is NOT the same as the one on here
 
+### file descriptions  
 | File under models and training | Description |
 | ----------- | ----------- |
 | data_preprocessing.py | the python file that groups the MIT dataset into the 5 categories that we trained our models on |
