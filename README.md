@@ -6,7 +6,7 @@ There will be two models that will be built in this project:
 CNN - using keras and tensorflow  
 Bayesian Logisitc Regression - R and manual  
 
-## jupyter notebook files are run on google collab for more computation
+## jupyter notebook files are run on google collab for more computation.
 
 | File under models and training | Description |
 | ----------- | ----------- |
